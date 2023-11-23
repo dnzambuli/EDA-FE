@@ -156,7 +156,7 @@ colnames(Sales_Data[,numeric_cols])
 
 These are imputed with the modal value
 
-### Numeric columns
+### Continuous columns
 
 1.  sales
 2.  resale
@@ -167,7 +167,7 @@ These are imputed with the modal value
 7.  curb_wgt
 8.  fuel_cap
 
-### imputation of discrete factor using mode
+### imputation of discrete / factor using mode
 
 ```{r}
 # distribution plot function
@@ -209,4 +209,224 @@ if(any(is.na(Sales_Data$type))){
 
 # replot the distribution to see if it is consistent
 plot_distrib(Sales_Data$type)
+```
+
+2.  **Grp_Hourse**
+
+```{r}
+plot_distrib(Sales_Data$Grp_Horse)
+Sales_Data$Grp_Horse = ifelse(is.na(Sales_Data$Grp_Horse), calc_mod(Sales_Data$Grp_Horse), Sales_Data$Grp_Horse)
+
+# Check if any na is left in the column
+if(any(is.na(Sales_Data$Grp_Horse))){
+  print("There are still na values in: Grp_Horse")
+}else{
+  print("No na values in: Grp_Horse")
+}
+
+# replot the distribution to see if it is consistent
+plot_distrib(Sales_Data$Grp_Horse)
+```
+
+3.  **engine_s**
+
+```{r}
+plot_density = function(data_set,num_col){
+  ggplot(data_set, aes(x = data_set[[num_col]]))+
+    geom_density(fill = "lightblue", color = "blue")+
+    ggtitle(paste("Density Plot of", num_col))+
+    xlab(num_col)+
+    ylab("Density")+
+    theme_minimal()
+}
+```
+
+```{r}
+plot_density(Sales_Data,"engine_s")
+Sales_Data$engine_s = ifelse(is.na(Sales_Data$engine_s), calc_mod(Sales_Data$engine_s), Sales_Data$engine_s)
+
+# Check if any na is left in the column
+if(any(is.na(Sales_Data$engine_s))){
+  print("There are still na values in: engine_s")
+}else{
+  print("No na values in: engine_s")
+}
+
+# replot the distribution to see if it is consistent
+plot_density(Sales_Data,"engine_s")
+```
+
+4.  **horsepow**
+
+```{r}
+
+plot_density(Sales_Data,"horsepow")
+Sales_Data$horsepow = ifelse(is.na(Sales_Data$horsepow), calc_mod(Sales_Data$horsepow), Sales_Data$horsepow)
+
+# Check if any na is left in the column
+if(any(is.na(Sales_Data$horsepow))){
+  print("There are still na values in: horsepow")
+}else{
+  print("No na values in: horsepow")
+}
+
+# replot the distribution to see if it is consistent
+plot_density(Sales_Data,"horsepow")
+```
+
+```{r}
+plot_density(Sales_Data,"mpg")
+Sales_Data$mpg = ifelse(is.na(Sales_Data$mpg), calc_mod(Sales_Data$mpg), Sales_Data$mpg)
+
+# Check if any na is left in the column
+if(any(is.na(Sales_Data$mpg))){
+  print("There are still na values in: mpg")
+}else{
+  print("No na values in: mpg")
+}
+
+# replot the distribution to see if it is consistent
+plot_density(Sales_Data,"mpg")
+```
+
+### Imputing continuous columns 
+
+using a random value based on the number of na values in the column
+
+```{r}
+set.seed(123)
+rand_val = function(data, column_name, low, up){
+  data[[column_name]] = ifelse(is.na(data[[column_name]]), runif(sum(is.na(data[[column_name]])), min = low, max = up), data[[column_name]])
+  return(data)
+}
+```
+
+1 **sales**
+
+```{r}
+plot_density(Sales_Data, "sales")
+Sales_Data=rand_val(Sales_Data, "sales",, 
+             min(Sales_Data$sales, na.rm = TRUE),
+             max(Sales_Data$sales, na.rm = TRUE))
+
+if(any(is.na(Sales_Data$sales))){
+  print(paste("there are na values", "sales"))
+}else{
+  print(paste("no na values", "sales"))
+}
+plot_density(Sales_Data, "sales")
+```
+
+2.  **resale**
+
+```{r}
+plot_density(Sales_Data, "resale")
+Sales_Data=rand_val(Sales_Data, "resale", 
+             min(Sales_Data$resale, na.rm = TRUE),
+             max(Sales_Data$resale, na.rm = TRUE))
+
+if(any(is.na(Sales_Data$resale))){
+  print(paste("there are na values", "resale"))
+}else{
+  print(paste("no na values", "resale"))
+}
+plot_density(Sales_Data, "resale",
+             min(Sales_Data$resale),
+             max(Sales_Data$resale))
+```
+
+3.  **price**
+
+```{r}
+low = min(Sales_Data$price, na.rm = TRUE)
+up = max(Sales_Data$price, na.rm = TRUE)
+plot_density(Sales_Data, "price")
+Sales_Data=rand_val(Sales_Data, "price",low,up)
+
+if(any(is.na(Sales_Data$price))){
+  print(paste("there are na values", "price"))
+}else{
+  print(paste("no na values", "price"))
+}
+plot_density(Sales_Data, "price")
+```
+
+4.  **wheelbas**
+
+```{r}
+low = min(Sales_Data$wheelbas, na.rm = TRUE)
+up = max(Sales_Data$wheelbas, na.rm = TRUE)
+plot_density(Sales_Data, "wheelbas")
+Sales_Data=rand_val(Sales_Data, "wheelbas",low,up)
+
+if(any(is.na(Sales_Data$wheelbas))){
+  print(paste("there are na values", "wheelbas"))
+}else{
+  print(paste("no na values", "wheelbas"))
+}
+plot_density(Sales_Data, "wheelbas")
+```
+
+5.  **width**
+
+```{r}
+low = min(Sales_Data$width, na.rm = TRUE)
+up = max(Sales_Data$width, na.rm = TRUE)
+plot_density(Sales_Data, "width")
+Sales_Data=rand_val(Sales_Data, "width",low,up)
+
+if(any(is.na(Sales_Data$width))){
+  print(paste("there are na values", "width"))
+}else{
+  print(paste("no na values", "width"))
+}
+plot_density(Sales_Data, "width")
+```
+
+6.  **length**
+
+```{r}
+low = min(Sales_Data$length, na.rm = TRUE)
+up = max(Sales_Data$length, na.rm = TRUE)
+plot_density(Sales_Data, "length")
+Sales_Data=rand_val(Sales_Data, "length",low,up)
+
+if(any(is.na(Sales_Data$length))){
+  print(paste("there are na values", "length"))
+}else{
+  print(paste("no na values", "length"))
+}
+plot_density(Sales_Data, "length")
+```
+
+7.  **curb_wgt**
+
+```{r}
+low = min(Sales_Data$curb_wgt, na.rm = TRUE)
+up = max(Sales_Data$curb_wgt, na.rm = TRUE)
+plot_density(Sales_Data, "curb_wgt")
+Sales_Data=rand_val(Sales_Data, "curb_wgt",low,up)
+
+if(any(is.na(Sales_Data$curb_wgt))){
+  print(paste("there are na values", "curb_wgt"))
+}else{
+  print(paste("no na values", "curb_wgt"))
+}
+plot_density(Sales_Data, "curb_wgt")
+```
+
+8.  **fuel_cap**
+
+```{r}
+low = min(Sales_Data$fuel_cap, na.rm = TRUE)
+up = max(Sales_Data$fuel_cap, na.rm = TRUE)
+plot_density(Sales_Data, "fuel_cap")
+Sales_Data=rand_val(Sales_Data, "fuel_cap",low,up)
+
+if(any(is.na(Sales_Data$fuel_cap))){
+  print(paste("there are na values", "fuel_cap"))
+}else{
+  print(paste("no na values", "fuel_cap"))
+}
+plot_density(Sales_Data, "fuel_cap")
 ```
