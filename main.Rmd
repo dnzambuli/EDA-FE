@@ -18,6 +18,22 @@ head(Sales_Data)
 
 ## Summary of the data set
 
+### Columns of the data set 
+
+```{r}
+colnames(Sales_Data)
+```
+
+### Convert the number column data to the numeric values
+
+```{r}
+numeric_cols = c("sales","resale","type","price", "engine_s", "horsepow",  "wheelbas",  "width", "length", "curb_wgt", "fuel_cap","mpg",  "Grp_Horse")
+Sales_Data[, numeric_cols] = lapply(Sales_Data[,numeric_cols], as.numeric)  
+str(Sales_Data)
+```
+
+### Data set distribution
+
 ```{r}
 summary(Sales_Data)
 ```
@@ -25,9 +41,17 @@ summary(Sales_Data)
 ## Missing values in each column
 
 ```{r}
-missing_data = data.frame(column = colnames(Sales_Data),
-                     missing_val = colSums(Sales_Data == "NULL!"),
-                     percentage_missing = colMeans(Sales_Data == "NULL!") * 100)
+num_col = Sales_Data[,numeric_cols]
+str_col = Sales_Data[,1:2]
+
+missing_data = data.frame(columns = colnames(str_col),
+                          missing_val = colSums(str_col == "NULL"),
+                          perc_missing = colMeans(str_col == "NULL"))
+num_miss = data.frame(columns = colnames(num_col),
+                          missing_val = colSums(is.na(num_col)),
+                          perc_missing = colMeans(is.na(num_col)))
+
+missing_data = rbind(missing_data, num_miss)
 View(missing_data)
 missing_data
 
@@ -45,19 +69,7 @@ any(is.null(Sales_Data))
 
 The data has missing values represented as `Null!` and not any of the default `NA` and `NULL`
 
-## Check the type of data 
-
-```{r}
-str(Sales_Data)
-```
-
-## Convert the data to the numeric values
-
-```{r}
-Sales_Data%in% seq3:15,] = as.numeric(Sales_Data[3:15,])
-
-str(Sales_Data)
-```
+The data has no column with more than half the values in the column missing so no columns or rows need to be dropped
 
 ## Number of data points
 
@@ -77,11 +89,26 @@ There are `225` data points represented as `15` columns and `157` rows
 
 ## Unique manufacturers
 
+### Impute the NULL manufacturers
+
+This is done by imputing the previously observed value in the column
+
+```{r}
+library(zoo)
+Sales_Data$manufact[Sales_Data$manufact == "NULL!"] = NA
+Sales_Data$manufact = na.locf(Sales_Data$manufact)
+
+# confirm if any na are in the manufact column 
+any(is.na(Sales_Data$manufact))
+```
+
+### The number of manufacturers
+
 ```{r}
 unique(Sales_Data$manufact)
 ```
 
-There are `31` unique car manufacturers
+There are `30` unique car manufacturers
 
 ## Cars produced by each manufacturer
 
@@ -93,15 +120,93 @@ library(dplyr)
 cars = cars %>% group_by(manufact) %>%summarise(count = sum(count))
 ```
 
+### See the cars produced
+
+```{r}
+cars
+```
+
 ```{r}
 library(ggplot2)
 
 ggplot(cars, aes(x= "", y = count, fill = manufact))+
   geom_bar(stat = "identity", width = 1)+
   coord_polar("y", start = 0)+
-  geom_text(aes(label = paste0(count, "%")), position = position_stack(vjust=0.5))+
   theme_classic() +
   theme(axis.line = element_blank(),
           axis.text = element_blank(),
           axis.ticks = element_blank())
+```
+
+## Assessing the numeric columns
+
+```{r}
+colnames(Sales_Data[,numeric_cols])
+```
+
+### Separate factor and number columns 
+
+**Discrete/ Factor Columns**
+
+1.  Type
+2.  Grp_Horse
+3.  engine_s
+4.  horsepow
+5.  mpg
+
+These are imputed with the modal value
+
+### Numeric columns
+
+1.  sales
+2.  resale
+3.  price
+4.  wheelbas
+5.  width
+6.  length
+7.  curb_wgt
+8.  fuel_cap
+
+### imputation of discrete factor using mode
+
+```{r}
+# distribution plot function
+plot_distrib = function(col_name){
+  # convert the data into columns
+  col_vals = data.frame(table(col_name))
+  col_vals$percent = col_vals$Freq / sum(col_vals$Freq) * 100
+  # plot the distibution
+  plot = ggplot(col_vals, aes(x = "", y = Freq, fill = as.factor(as.character(col_name)))) +
+    geom_bar(stat = "identity") +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(percent), "%")), position = position_stack(vjust = 0.5)) +
+    ggtitle("Distribution Percentages") +
+    theme_light()
+  return(plot)
+}
+```
+
+```{r}
+# imputation func
+calc_mod = function(x){
+  uniq_x = unique(x)
+  uniq_x[which.max(tabulate(match(x, uniq_x)))]
+}
+```
+
+1.  **Type**
+
+```{r}
+plot_distrib(Sales_Data$type)
+Sales_Data$type = ifelse(is.na(Sales_Data$type), calc_mod(Sales_Data$type), Sales_Data$type)
+
+# Check if any na is left in the column
+if(any(is.na(Sales_Data$type))){
+  print("There are still na values in: type")
+}else{
+  print("No na values in: type")
+}
+
+# replot the distribution to see if it is consistent
+plot_distrib(Sales_Data$type)
 ```
