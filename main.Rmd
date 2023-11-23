@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Consider sales data, perform Exploratory Data Analysis (EDA) and Feature Engineering
+
+using appropriate techniques and variables
+
+## The data set
+
+```{r}
+library(readxl)
+Sales_Data <- read_excel("Sales_Data.xlsx")
+View(Sales_Data)
+head(Sales_Data)
+```
+
+## Summary of the data set
+
+```{r}
+summary(Sales_Data)
+```
+
+## Missing values in each column
+
+```{r}
+missing_data = data.frame(column = colnames(Sales_Data),
+                     missing_val = colSums(Sales_Data == "NULL!"),
+                     percentage_missing = colMeans(Sales_Data == "NULL!") * 100)
+View(missing_data)
+missing_data
+
+```
+
+```{r}
+# check for na 
+any(is.na(Sales_Data))
+```
+
+```{r}
+# check for null
+any(is.null(Sales_Data))
+```
+
+The data has missing values represented as `Null!` and not any of the default `NA` and `NULL`
+
+## Check the type of data 
+
+```{r}
+str(Sales_Data)
+```
+
+## Convert the data to the numeric values
+
+```{r}
+Sales_Data%in% seq3:15,] = as.numeric(Sales_Data[3:15,])
+
+str(Sales_Data)
+```
+
+## Number of data points
+
+```{r}
+ncol(Sales_Data)
+```
+
+```{r}
+nrow(Sales_Data)
+```
+
+```{r}
+ncol(Sales_Data) * ncol(Sales_Data)
+```
+
+There are `225` data points represented as `15` columns and `157` rows
+
+## Unique manufacturers
+
+```{r}
+unique(Sales_Data$manufact)
+```
+
+There are `31` unique car manufacturers
+
+## Cars produced by each manufacturer
+
+```{r}
+cars = data.frame(manufact = Sales_Data$manufact,
+                  model = Sales_Data$model,
+                  count = rep(1, 157))
+library(dplyr)
+cars = cars %>% group_by(manufact) %>%summarise(count = sum(count))
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(cars, aes(x= "", y = count, fill = manufact))+
+  geom_bar(stat = "identity", width = 1)+
+  coord_polar("y", start = 0)+
+  geom_text(aes(label = paste0(count, "%")), position = position_stack(vjust=0.5))+
+  theme_classic() +
+  theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank())
+```
