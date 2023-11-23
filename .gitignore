@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+"Sales Quiz Data.xlsx"
+*.nb
+*.Rproj
+*.pdf
