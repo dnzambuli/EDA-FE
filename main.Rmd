@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Consider sales data, perform Exploratory Data Analysis (EDA) and Feature Engineering
@@ -18,7 +20,7 @@ head(Sales_Data)
 
 ## Summary of the data set
 
-### Columns of the data set 
+### Columns of the data set
 
 ```{r}
 colnames(Sales_Data)
@@ -144,7 +146,7 @@ ggplot(cars, aes(x= "", y = count, fill = manufact))+
 colnames(Sales_Data[,numeric_cols])
 ```
 
-### Separate factor and number columns 
+### Separate factor and number columns
 
 **Discrete/ Factor Columns**
 
@@ -289,7 +291,7 @@ if(any(is.na(Sales_Data$mpg))){
 plot_density(Sales_Data,"mpg")
 ```
 
-### Imputing continuous columns 
+### Imputing continuous columns
 
 using a random value based on the number of na values in the column
 
@@ -305,7 +307,7 @@ rand_val = function(data, column_name, low, up){
 
 ```{r}
 plot_density(Sales_Data, "sales")
-Sales_Data=rand_val(Sales_Data, "sales",, 
+Sales_Data=rand_val(Sales_Data, "sales", 
              min(Sales_Data$sales, na.rm = TRUE),
              max(Sales_Data$sales, na.rm = TRUE))
 
@@ -330,9 +332,7 @@ if(any(is.na(Sales_Data$resale))){
 }else{
   print(paste("no na values", "resale"))
 }
-plot_density(Sales_Data, "resale",
-             min(Sales_Data$resale),
-             max(Sales_Data$resale))
+plot_density(Sales_Data, "resale")
 ```
 
 3.  **price**
@@ -430,3 +430,194 @@ if(any(is.na(Sales_Data$fuel_cap))){
 }
 plot_density(Sales_Data, "fuel_cap")
 ```
+
+# Data Visuals
+
+## spread of price
+
+```{r}
+ggplot(Sales_Data, aes(x = Sales_Data$price)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  labs(x = "Price", y = "Frequency", title = "Histogram of Price")
+```
+
+-   price has a `right skew`
+
+-   This means that most cars in the sales data have a `relatively low prices`
+
+## Engine size and sales
+
+```{r}
+engine_data = Sales_Data[, c(7, 3, 13, 8, 14)]
+engine_data$count = rep(1, nrow(Sales_Data))
+engine_data = engine_data %>% group_by(engine_s)%>%summarise(
+  sales = sum(sales),
+  av_fuel_cap = mean(fuel_cap),
+  av_horsepow = mean(horsepow),
+  av_mpg = mean(mpg)
+)
+engine_data
+
+```
+
+This data represents the `total sales`, `average horsepower`, `average mpg` and `average fuel capacity` for each engine size
+
+## Regression Analysis
+
+### Variables that influence horse power
+
+```{r}
+# linear regression data
+cols_lin_regress = c(3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+
+# 
+linear_regress_data = Sales_Data[, cols_lin_regress]
+colnames(linear_regress_data)
+```
+
+```{r}
+linear_model = lm(horsepow~., data = linear_regress_data)
+summary(linear_model)
+```
+
+```{r}
+linear_model_2 = lm(horsepow~Grp_Horse+engine_s+price, data = linear_regress_data)
+summary(linear_model_2)
+```
+
+From the data the `horse power` can be predicted based on `Grp horse`, `engine size`, and `price`
+
+## Homoscedasticity
+
+```{r}
+library(lmtest)
+homoscedasticity_test = bptest(linear_model_2)
+homoscedasticity_test
+```
+
+The p-value `0.03414` is less than `0.05` indicates that the data set has a constant variance hence the data fits `homoscedascity`
+
+## Normality Test
+
+```{r}
+linear_residuals = residuals(linear_model_2)
+
+# qqplot
+qqnorm(linear_residuals)
+qqline(linear_residuals, col = 2)
+```
+
+Most of the points lie on the qqline indicating that the variables follow a normal distribution
+
+## linearity
+
+```{r}
+library(ggplot2)
+
+res_fit = data.frame(fitted = linear_model_2$fitted.values,
+                     residual = linear_model_2$residuals)
+
+ggplot(data = res_fit,
+       aes(x = fitted, y = residual)) +
+  geom_point()+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(
+    x = "fitted values",
+    y = "residuals",
+    title = "Fitted value Residual Plot"
+  )
+```
+
+Most data points are around the `0` line and equally distributed either side meaning that the relationship of the dependent and independent variables is `linear`
+
+## multi-colinearity
+
+```{r}
+library(car)
+var_inf= vif(linear_model_2)
+var_inf
+```
+
+The variance inflation factor for each of the variables is `less than 5` indicating that the variables are not affected by variance inflation due to **multi-colinearity**
+
+# Factor analysis
+
+## Corelation
+
+```{r}
+pca_data = linear_regress_data
+pca_data = pca_data %>% select_if(is.numeric)
+data_pca_cor = cor(pca_data)
+data_pca_cor
+```
+
+## Principle components
+
+```{r}
+pca_result = prcomp(pca_data, scale = TRUE) # std dev = 1 and mean = 0
+summary(pca_result)
+```
+
+-   **Standard deviation:** Indicates the amount of variance captured by each principal component. Larger standard deviations mean that the principal component captures more variability in the data.
+
+-   **Proportion of Variance:** Represents the proportion of total variance in the data explained by each principal component. Higher values indicate that the corresponding principal component explains more of the total variance.
+
+-   **Cumulative Proportion:** Shows the cumulative proportion of variance explained by each principal component. It demonstrates how much of the total variance is explained when considering up to that specific component.
+
+Therefore
+
+`pc1` explains `49.23%` of the total variation
+
+`pc2` explains `67.92%`
+
+...
+
+## Scree plot
+
+```{r}
+library(psych)
+library(FactoMineR)
+library(factoextra)
+fviz_eig(pca_result, 
+         addlabels = TRUE, 
+         ylim = c(0, 70))
+```
+
+Taking 3 principle components will ensure the highest explained variance
+
+## Key components
+
+```{r}
+pca_result$rotation
+```
+
+## Transform based on the principle components
+
+```{r}
+transformed = predict(pca_result, newdata =linear_regress_data)
+head(transformed)
+```
+
+It is clear that `pc12` experiences the least variance captured by the dimension reduction
+
+## Data point labels
+
+```{r}
+linear_regress_data$mpg = ifelse(linear_regress_data$mpg < 21, 'Guzzler', "Fuel Efficient")
+linear_regress_data$mpg = as.factor(linear_regress_data$mpg)
+fviz_pca_biplot(pca_result,
+                label = "var",
+                habillage = linear_regress_data$mpg)
+```
+
+The higher the `mpg` the more likely the car is fuel efficient
+
+```{r}
+colnames(linear_regress_data)
+```
+
+`` resale, price, engine size, horsepow` `` increase with a decrease in fuel efficiency
+
+`wheelbas, width, length, curb weight, fuel capacity and grp horse` decrease with an increase in the car being a guzzler
+
+`sales` has a negative non impact to being a guzzler or not
